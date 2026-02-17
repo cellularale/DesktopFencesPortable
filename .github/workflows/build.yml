@@ -9,34 +9,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-            - name: Extract source zip
+      - name: Extract source zip
         shell: pwsh
         run: |
+          if (-not (Test-Path "DesktopFences-main.zip")) { throw "DesktopFences-main.zip non trovato nel repo root." }
           Expand-Archive -Path "DesktopFences-main.zip" -DestinationPath "src" -Force
-          Get-ChildItem -Recurse -Depth 3 src | Select-Object -First 20
-
+          Write-Host "Estratto in .\src"
+          Get-ChildItem -Recurse -Path "src" -Filter "*.csproj" | Select-Object FullName
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-         - name: Publish self-contained portable
+      - name: Publish self-contained portable
         shell: pwsh
         run: |
-          # Trova automaticamente il primo .csproj nel repo
-         $proj = Get-ChildItem -Recurse -Path "src" -Filter "*.csproj" | Select-Object -First 1
+          # Trova il progetto WPF (sceglie Desktop Fences.csproj se esiste)
+          $proj = Get-ChildItem -Recurse -Path "src" -Filter "Desktop Fences.csproj" | Select-Object -First 1
+          if (-not $proj) {
+            $proj = Get-ChildItem -Recurse -Path "src" -Filter "*.csproj" | Select-Object -First 1
+          }
+          if (-not $proj) { throw "Nessun .csproj trovato dentro src. Controlla che lo zip contenga i sorgenti." }
 
-          if (-not $proj) { throw "Nessun .csproj trovato nel repo. Controlla l'upload dei file." }
-
-          Write-Host "Trovato progetto:" $proj.FullName
+          Write-Host "Uso progetto:" $proj.FullName
 
           dotnet publish $proj.FullName -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=true `
             -p:IncludeAllContentForSelfExtract=true `
             -p:EnableCompressionInSingleFile=true `
             -o out
-
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
