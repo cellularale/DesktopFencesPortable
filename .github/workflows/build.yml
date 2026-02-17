@@ -37,6 +37,14 @@ jobs:
           msbuild $proj.FullName /t:Restore,Publish /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /p:SelfContained=true `
             /p:PublishSingleFile=true /p:IncludeAllContentForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:PublishDir="$pwd\out\"
 
+      - name: SHA256 exe
+        shell: pwsh
+        run: |
+          Write-Host "=== Contenuto cartella out ==="
+          Get-ChildItem ".\out" | Format-Table Name,Length
+          Write-Host "=== SHA256 Desktop Fences.exe ==="
+          Get-FileHash ".\out\Desktop Fences.exe" -Algorithm SHA256 | Format-List
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
