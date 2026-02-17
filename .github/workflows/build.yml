@@ -22,23 +22,26 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Publish self-contained portable
+                - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+
+           - name: Publish self-contained portable (MSBuild)
         shell: pwsh
         run: |
-          # Trova il progetto WPF (sceglie Desktop Fences.csproj se esiste)
+          # Trova il progetto WPF
           $proj = Get-ChildItem -Recurse -Path "src" -Filter "Desktop Fences.csproj" | Select-Object -First 1
           if (-not $proj) {
             $proj = Get-ChildItem -Recurse -Path "src" -Filter "*.csproj" | Select-Object -First 1
           }
-          if (-not $proj) { throw "Nessun .csproj trovato dentro src. Controlla che lo zip contenga i sorgenti." }
+          if (-not $proj) { throw "Nessun .csproj trovato dentro src." }
 
           Write-Host "Uso progetto:" $proj.FullName
 
-          dotnet publish $proj.FullName -c Release -r win-x64 --self-contained true `
-            -p:PublishSingleFile=true `
-            -p:IncludeAllContentForSelfExtract=true `
-            -p:EnableCompressionInSingleFile=true `
-            -o out
+          # Restore + Publish con MSBuild di Visual Studio (supporta ResolveComReference)
+          msbuild $proj.FullName /t:Restore,Publish /p:Configuration=Release /p:RuntimeIdentifier=win-x64 /p:SelfContained=true `
+            /p:PublishSingleFile=true /p:IncludeAllContentForSelfExtract=true /p:EnableCompressionInSingleFile=true /p:PublishDir="$pwd\out\"
+
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
